@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/chp11/projects/MLFlow_mockup/mlruns/0/77d5d64352d040eead27f17b17841a47/artifacts
+end_time: 1570529847041
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: deleted
+name: ''
+run_id: 77d5d64352d040eead27f17b17841a47
+run_uuid: 77d5d64352d040eead27f17b17841a47
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1570529835631
+status: 3
+tags: []
+user_id: chp11

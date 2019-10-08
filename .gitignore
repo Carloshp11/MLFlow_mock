@@ -1,0 +1,12 @@
+*.tar.gz
+__pycache__
+*.Rcheck
+*.zip
+.Rproj.user
+.DS_Store
+.idea
+.git
+venv
+local_storage
+err_log.txt
+log.txt

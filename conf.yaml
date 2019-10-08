@@ -1,0 +1,53 @@
+environment_buckets:
+  stg: jptvs-etl-stg-ohio
+  rc: jptvs-etl-release-candidate-us-east-1
+  pro: jptvs-etl-production
+  ai-stg: jptvs-ai-ohio
+  ai-rc: jptvs-ai-rc-virginia
+  ai-pro: jptvs-ai
+label_col: quality
+temporal_col: timestamp
+hyperparameters:
+  etl_mockup_hyperparameter:
+    - one
+    - two
+  models:
+    lightgbm.sklearn.LGBMRegressor:
+      learning_rate:
+        - 0.5
+        - 0.2
+    sklearn.linear_model.ElasticNet:
+      alpha:
+        - 0
+        - 0.5
+#hyperparameters:
+#  etl_mockup_hyperparameter:
+#    - one
+#    - two
+#  models:
+#    lightgbm.sklearn.LGBMRegressor:
+#      boosting_type:
+#        - gbdt
+#        - dart
+#        - goss
+#      max_depth:
+#        - 3
+#        - 6
+#      learning_rate:
+#        - 0.5
+#        - 0.2
+#        - 0.1
+#        - 0.05
+#        - 0.01
+#      num_leaves:
+#        - 64
+#        - 640
+#    sklearn.linear_model.ElasticNet:
+#      alpha:
+#        - 0
+#        - 0.5
+#        - 1
+#      l1_ratio:
+#        - 0
+#        - 0.5
+#        - 1

@@ -77,3 +77,75 @@ def conditional_print(*args, verbosity=None, type_='NORMAL', keyword=None, set_e
                 keywords='Warning:', type_='WARNING'))
     else:
         Printer.print(*args, verbosity=verbosity, type_=type_, keywords=keyword)
+
+
+class ProgressBar:
+    """
+    ProgressBar object to keep count of progress and optional parameters.
+    Total possible progress must be specified at initialization.
+    """
+
+    def __init__(self, total: int, prefix: str = '', suffix: str = '', decimals: int = 1, length: int = 100,
+                 print_each: int = 1, fill: str = '█'):
+        """
+        Initialize the class.
+        :param total: Required - total progress required to complete the bar
+        :param prefix: Prefix string
+        :param suffix: Suffix string
+        :param decimals: Positive number of decimals in percent complete
+        :param length: Character length of bar
+        :param print_each: Print progress each X iterations
+        :param fill: Bar fill character
+        """
+        self.progress = 0
+        self.total = total
+        self.prefix = prefix
+        self.suffix = suffix
+        self.decimals = decimals
+        self.length = length
+        self.print_each = print_each
+        self.fill = fill
+
+    def print(self, add: int = 1):
+        """
+        Add 1 to bar progress and print the bar.
+        :type add: increasement of the progress
+        :return: None
+        """
+        self.progress += add
+        if self.progress % self.print_each == 0:
+            print_progres_bar(self.progress, self.total, prefix=self.prefix, suffix=self.suffix, decimals=self.decimals,
+                              length=self.length, fill=self.fill)
+
+    def fixed_print(self, progress: int, total: int = None):
+        """
+        Print progress indicating a specific progress rather than the one recorded by the class.
+        Total progress expressed can also be declared splicitly.
+        This print won't add one step to the class progress.
+
+        :param progress: Specific progress to print on the bar
+        :param total: Optional. Total progress to complete the bar
+        :return: None
+        """
+        print_progres_bar(progress, self.total if total is None else total)
+
+
+def print_progres_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix))  # , end='\r')
+    # Print New Line on Complete
+    if iteration == total:
+        print()
