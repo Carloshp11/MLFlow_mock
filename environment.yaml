@@ -11,8 +11,9 @@ dependencies:
   - lightgbm
   - pyyaml
   - pyarrow
-  - psutil
-  - distributed
+  # - psutil --> for modin
+  # - distributed --> for modin
   - pip:
-      - modin[ray]
       - mlflow>=1.3
+      - neptune-mlflow
+      # - modin[ray]

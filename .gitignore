@@ -8,5 +8,4 @@ __pycache__
 .git
 venv
 local_storage
-err_log.txt
-log.txt
+mlruns/
