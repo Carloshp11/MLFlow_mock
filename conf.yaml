@@ -8,17 +8,20 @@ environment_buckets:
 label_col: quality
 temporal_col: timestamp
 hyperparameters:
-  etl_mockup_hyperparameter:
-    - one
-    - two
+  etl_alpha:
+    - 1
+    - 0
+  etl_omega:
+    - True
+    - False
   models:
     lightgbm.sklearn.LGBMRegressor:
       learning_rate:
-        - 0.5
+        - 0.1
         - 0.2
     sklearn.linear_model.ElasticNet:
       alpha:
-        - 0
+        - 1
         - 0.5
 #hyperparameters:
 #  etl_mockup_hyperparameter:

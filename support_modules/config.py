@@ -1,5 +1,5 @@
 from library.config import ConfigBase
-from support_modules.misc import MixedParameterGrid
+from library.etl import MixedParameterGrid
 
 
 # noinspection PyAttributeOutsideInit

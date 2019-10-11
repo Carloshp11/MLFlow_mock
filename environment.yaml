@@ -15,5 +15,5 @@ dependencies:
   # - distributed --> for modin
   - pip:
       - mlflow>=1.3
-      - neptune-mlflow
+      - neptune-client
       # - modin[ray]

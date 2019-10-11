@@ -1,14 +1,10 @@
 import pickle
 
-import mlflow
-from sklearn.model_selection import ParameterGrid
-from typing import Iterable, Union, Tuple, List
+from typing import Tuple
 
 import boto3
 import pandas as pd
 import s3fs
-
-from library.debug import ProgressBar
 
 
 def date_to_integer(dt_time):
@@ -49,52 +45,6 @@ def df_crossjoin(df1, df2, **kwargs):
     df1.drop('_tmpkey', axis=1, inplace=True)
     df2.drop('_tmpkey', axis=1, inplace=True)
     return res
-
-
-class MixedParameterGrid:
-    """
-    This class is designed to allow users to define a complex hyperparameter grid on a .yaml or other plain text conf file.
-    This grid can, most importantly, hold 'standard' or non-model hyperparameters and then a dictionary of 'in-model' hyperparameters for each of them.
-    In order for the class to work properly, the input dict must contain a 'models' key which must be a dict itself. This models dict
-    must have as keys valid import paths to the model objects (example 'lightgbm.sklearn.LGBMRegressor') and as values, the hyperparameters values as a list.
-
-    Example
-    =======
-
-
-    """
-
-    def __init__(self, mixed_param_grid: dict):
-        assert 'models' in mixed_param_grid.keys(), 'A MixedParameterGrid dictionary must have a \'models\' key. Else, use a sklearn.model_selection.ParameterGrid object instead'
-        self.standard_grid = {k: v for k, v in mixed_param_grid.items() if k.lower() != 'models'}
-        self.models_grid = mixed_param_grid['models']
-
-    def __iter__(self) -> Tuple[dict, Iterable]:
-        for standard_hyperparameters in ParameterGrid(self.standard_grid):
-            yield standard_hyperparameters, self._models_iterator_
-
-    def _models_iterator_(self) -> Tuple[any, str, dict]:
-        for model_name, model_hyperparameters in self.models_grid.items():
-            assert isinstance(model_hyperparameters, dict)
-            for k, v in model_hyperparameters.items():
-                if not isinstance(v, (list, tuple)):
-                    model_hyperparameters[k] = [v]
-
-            progess_bar = ProgressBar(total=len(ParameterGrid(model_hyperparameters)),
-                                      prefix=model_name, print_each=3)
-
-            model = self._import_from_string_spec_(model_name)
-            for hyperparameters_combination in ParameterGrid(model_hyperparameters):
-                progess_bar.print()
-                yield model, model_name, hyperparameters_combination
-
-    @staticmethod
-    def _import_from_string_spec_(spec):
-        import importlib
-        from_ = '.'.join(spec.split('.')[:-1])
-        import_ = spec.split('.')[-1]
-        module = importlib.import_module(from_, package=import_)
-        return getattr(module, import_)
 
 
 def join_dicts(*dicts) -> dict:
