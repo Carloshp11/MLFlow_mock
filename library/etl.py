@@ -63,7 +63,7 @@ def temporal_cross_validator(model, df: pd, label_col: str = 'label', temporal_c
 
 class MixedParameterGrid:
     """
-    This class is designed to allow users to define a complex hyperparameter grid on a .yaml or other plain text conf file.
+    This class is designed to allow users to define a complex hyperparameter grid on a .yaml or other plain text config file.
     This grid can, most importantly, hold 'standard' or non-model hyperparameters and then a dictionary of 'in-model' hyperparameters for each of them.
     In order for the class to work properly, the input dict must contain a 'models' key which must be a dict itself. This models dict
     must have as keys valid import paths to the model objects (example 'lightgbm.sklearn.LGBMRegressor') and as values, the hyperparameters values as a list.

@@ -8,10 +8,10 @@ environment_buckets:
 label_col: quality
 temporal_col: timestamp
 hyperparameters:
-  etl_alpha:
+  alpha:
     - 1
     - 0
-  etl_omega:
+  omega:
     - True
     - False
   models:

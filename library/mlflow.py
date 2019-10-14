@@ -37,19 +37,17 @@ def manage_runs(params_grid: dict, _deep_values: dict = None, **start_run_args) 
         next_deep_values = join_dicts(_deep_values, next_iteration) if _deep_values else next_iteration
 
         with mlflow.start_run(**start_run_args, nested=True) as flow:  # Only the deepest flow is returned by the iterator
-            mlflow.log_param(param_name, param_value)
+            mlflow.log_param('etl_'+param_name, param_value)
             if other_params:  #  There are more nested parameters to combine
                 yield from manage_runs(other_params, _deep_values=next_deep_values, **start_run_args)
             else:
                 yield flow, next_deep_values
 
 
-class experimental_manage_runs(ParameterGrid):
-    def __init__(self, param_grid):
-        super().__init__(param_grid)
-
-    def __iter__(self):
-        param_combination = super().__iter__()
-        with mlflow.start_run(nested=True) as flow:  # Only the deepest flow is returned by the iterator
-            mlflow.log_params(param_combination)
-            yield flow, param_combination
+def parse_run_params(MLFlowClient: mlflow.tracking.MlflowClient, run_id: str):
+    run_info = MLFlowClient.get_run(run_id)
+    parent_run_info = MLFlowClient.get_run(run_info.data.tags['mlflow.parentRunId'])
+    run_hyperparameters = join_dicts(parent_run_info.data.params, run_info.data.params)
+    etl_hyperparameters = {k[4:]: v for k, v in run_hyperparameters.items() if k.startswith('etl_')}
+    model_hyperparameters = {k: v for k, v in run_hyperparameters.items() if not k.startswith('etl_')}
+    return etl_hyperparameters, model_hyperparameters

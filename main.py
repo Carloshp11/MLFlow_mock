@@ -1,6 +1,5 @@
 import argparse
-from typing import Iterable, Tuple
-import lightgbm
+from typing import Tuple, Iterable
 import mlflow
 import mlflow.sklearn
 import neptune
@@ -9,10 +8,11 @@ import neptune
 import pandas as pd
 
 from library.code_patterns import AttDict
-from library.etl import temporal_cross_validator
-from library.mlflow import burn_first_run, manage_runs
+from library.config import ConfigBase
+from library.etl import temporal_cross_validator, MixedParameterGrid
+from library.mlflow import burn_first_run, manage_runs, parse_run_params
 from support_modules.arg_validators import valid_mode
-from support_modules.config import MLFlowonfig
+from support_modules.config import MLFlowConfig
 from support_modules.misc import join_dicts
 
 # neptune.set_project('carlos.heras/MLflow')
@@ -21,15 +21,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--mode', required=True, type=valid_mode)
 parser.add_argument('-exp_id', '--experiment_id', required=False, type=str)
 parser.add_argument('-name', '--run_name', required=False, type=str)
+parser.add_argument('-run', '--run_id', required=False, type=str)
 pyargs = parser.parse_args()
 
 train = pyargs.mode == 'train'
 start_run_args = {k: v for k, v in pyargs.__dict__.items()
-                  if k in ('run_name', 'run_id', 'experiment_id')
+                  if k in ('run_name', 'experiment_id')
                   and v is not None and v.lower() != 'none'}
 
-conf = MLFlowonfig(config_path='conf.yaml')
-conf.post_process_dinamic_params()
+conf = ConfigBase(config_path='conf.yaml')
 
 
 def get_best(all_metrics: pd):  # mockup
@@ -44,12 +44,12 @@ def get_best(all_metrics: pd):  # mockup
     return best_metrics, best_hyperparameters
 
 
-def optimize_model(df: pd, predictive_features: list, config: AttDict) -> Tuple[any, dict, dict]:
+def optimize_model(df: pd, predictive_features: list, models_iterator: Iterable, config: AttDict) -> Tuple[any, dict, dict]:
     assert 'hyperparameters' in config.keys()
 
     all_metrics = pd.DataFrame()
     # noinspection PyCallingNonCallable
-    for model_class, model_name, hyperparameters_combination in config.hyperparameters.models_iterator():
+    for model_class, model_name, hyperparameters_combination in models_iterator:
         model = model_class(**hyperparameters_combination)
         metrics = temporal_cross_validator(model=model,
                                            df=df[[config.temporal_col, config.label_col] + predictive_features],
@@ -68,37 +68,64 @@ def optimize_model(df: pd, predictive_features: list, config: AttDict) -> Tuple[
     return fitted_model, best_metrics, best_hyperparameters
 
 
-def workflow(df, etl_hyperparameters: dict, flow):
-    global train
-    # ETL
-    predictive_features = [_ for _ in df.columns if _ not in (conf.label_col, conf.temporal_col)]  # No ETL
+class Workflow:
 
-    # Model Optimization
-    if train:
+    def __init__(self, config: AttDict, mode: str):
+        self.conf = config
+        self.conf.hyperparameters = MixedParameterGrid(config.hyperparameters)
+        self.train = mode == 'train'
+        self.MLFlowClient = mlflow.tracking.MlflowClient()
+
+    def manage_runs(self):
+        return manage_runs(self.conf.hyperparameters.standard_grid)
+
+    def _models_iterator_(self):
+        return self.conf.hyperparameters.models_iterator()
+
+    def etl(self, df: pd, etl_hyperparameters: dict):
+        print('etl_hyperparameters\n', etl_hyperparameters)
+        self.predictive_features = [_ for _ in df.columns if _ not in (conf.label_col, conf.temporal_col)]
+        return df
+
+    def fit(self, df: pd, etl_hyperparameters: dict, flow: mlflow.tracking.fluent.ActiveRun):
+        df = self.etl(df, etl_hyperparameters)
+
         fitted_model, best_metrics, best_hyperparameters = optimize_model(df,
-                                                                          predictive_features=predictive_features,
-                                                                          config=conf)
-    else:
-        pass
+                                                                          predictive_features=self.predictive_features,
+                                                                          models_iterator=self._models_iterator_(),
+                                                                          config=self.conf)
 
-    # MLFlow logging
-    mlflow.log_params(best_hyperparameters)
-    mlflow.log_metrics(best_metrics)
-    mlflow.sklearn.log_model(fitted_model, "model")
+        # MLFlow logging
+        mlflow.log_params(best_hyperparameters)
+        mlflow.log_metrics({'etl_'+k: v for k, v in best_metrics.items()})
+        mlflow.sklearn.log_model(fitted_model, 'model')
+
+    def predict(self, df: pd, run_id: str):
+        etl_hyperparameters, _ = parse_run_params(self.MLFlowClient, run_id)
+        df = self.etl(df, etl_hyperparameters)
+
+        fitted_model = mlflow.sklearn.load_model(self.MLFlowClient.download_artifacts(run_id, 'model'))
+        df['predction'] = fitted_model.predict(df[self.predictive_features])
+        return df
 
 
 if __name__ == "__main__":
+    workflow = Workflow(config=conf, mode=pyargs.mode)
+
     # Load data
     dataset = pd.read_csv('local_storage/winequality-red_timestamp.csv', sep=';')
     dataset['timestamp'] = pd.to_datetime(dataset['timestamp'], infer_datetime_format=True)
-    burn_first_run()
 
-    # Lo que no dependa de ningún hiperparámetro debe quedarse fuera de este bucle
-    for flow_, etl_hyperparameters_ in manage_runs(conf.hyperparameters.standard_grid):
-        print('etl_hyperparameters_\n', etl_hyperparameters_)
-        workflow(dataset, etl_hyperparameters_, flow_)  # Has no validation set reserved
+    # Whatever does not depend upon any hyperparameter shall go here
+    pass
 
-    # for etl_hyperparameters_, model_iterator in conf.hyperparameters:
-    #     workflow(dataset, etl_hyperparameters_, model_iterator)  # Has no validation set reserved
+    if train:
+        burn_first_run()
+        for flow_, etl_hyperparameters_ in manage_runs(conf.hyperparameters.standard_grid):
+            workflow.fit(dataset, etl_hyperparameters_, flow_)  # Has no validation set reserved
+    else:
+        predicted_df = workflow.predict(dataset, pyargs.run_id)
+        print('predicted_df')
+        print(predicted_df)
 
     print('THE END')

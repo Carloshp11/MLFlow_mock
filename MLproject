@@ -5,7 +5,11 @@ conda_env: environment.yaml
 entry_points:
   main:
     command: "python -W ignore::DeprecationWarning main.py --mode train"
+  train:
+    command: "python -W ignore::DeprecationWarning main.py --mode train"
   predict:
-    command: "python -W ignore::DeprecationWarning main.py --mode predict"
+    parameters:
+        run_id: {type: str}
+    command: "python -W ignore::DeprecationWarning main.py --mode predict --run_id {run_id}"
   test:
     command: "python test.py"
