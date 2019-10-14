@@ -127,5 +127,7 @@ if __name__ == "__main__":
         predicted_df = workflow.predict(dataset, pyargs.run_id)
         print('predicted_df')
         print(predicted_df)
+        print('predicted_df AGAIN')
+        print(predicted_df)
 
     print('THE END')
